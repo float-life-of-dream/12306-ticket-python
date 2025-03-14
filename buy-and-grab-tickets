@@ -1,0 +1,102 @@
+from time import sleep, time
+from selenium.webdriver.common.by import By
+from selenium import webdriver
+
+driver = webdriver.Chrome()
+driver.get('https://kyfw.12306.cn/otn/leftTicket/init?linktypeid=dc&fs=%E5%8C%97%E4%BA%AC,BJP&ts=%E4%B8%8A%E6%B5%B7,SHH&date=2025-03-14&flag=N,N,Y')
+#sleep(500)
+#driver.quit()
+def student():
+    stu=input("是否购买学生票，请输入Y/N")
+    if stu=='N':
+        driver .find_element(By.XPATH,'//*[@id="query_ticket"]').click()
+        accept_stu='已选择成人票'
+    else :
+        stu_element=driver.find_element(By.XPATH,'//*[@id="sf2"]')
+        stu_element.click()
+        sleep(1)
+        driver.find_element(By.XPATH,'//*[@id="query_ticket"]').click()
+        accept_stu='已勾选成人票'
+    return accept_stu
+student()
+sleep(1)
+def refresh_search_ticket(train_message,train_number):
+    global success_message
+    for times in range(0,31):
+        success_message=''
+        if times<30:
+            driver.find_element(By.XPATH,'//*[@id="query_ticket"]').click()
+            sleep(1)
+            if'有'==train_message[11]:
+                print("您的二等座有票了，正在为您预定")
+                sleep(0.5)
+                button = train_number.find_element(By.XPATH,'.//a[@class="btn72"]')
+                sleep(0.5)
+                button.click()
+                sleep(1)
+                success_message='预定成功，现在正在选择乘车人'
+                print('预定成功，现在正在选择乘车人')
+                break
+            else:
+                print('继续点击查询按钮，刷新余票',end='\r')
+        else:
+            sleep(1)
+            success_message='查询时间已到！抱歉，你所选的车次，目前没有二等座的票了，你可12306官网，继续查询'
+            sleep(0.5)
+            print('查询时间已到！抱歉，你所选的车次，目前没有二等座的票了，你可去12306官网，继续查询')
+            break
+    return success_message
+
+def order_ticket():
+    global order_ticket_message
+    trips=input("请输入要购买的车次")
+    train_numbers=driver.find_elements(By.XPATH,'//tbody[@id="queryLeftTable"]/tr[not(@datatran)]')
+
+    for train_number in train_numbers:
+        order_ticket_message=''
+
+        train_messages=train_number.text.replace('\n',' ')
+        train_message=train_messages.split(' ')
+        print(train_message)
+        if trips == train_message[0]:
+            print("找到你想要的车次了")
+            if'有'==train_message[11]:
+                print("该车有二等座")
+                sleep(1)
+                button=train_number.find_element(By.XPATH,'.//a[@class="btn72"]')
+                button.click()
+                sleep(1)
+                order_ticket_message='预定成功，正在选择乘车人'
+                break
+            else:
+                print('抱歉，你所选的车次车票，目前没票了，存在有侯补票的情况，正在为你刷新页面，实时更新车票情况')
+
+                result='查询时间已到！抱歉，您所选的车次没有二等座的票了，你可以去12306官网继续查询'
+                sleep(1)
+                success_messages=refresh_search_ticket(train_message,train_number)
+                if result==success_messages:
+                    sleep(1)
+                    order_ticket_message="本次抢票已结束，祝您好运"
+                    print("本次抢票已结束，祝您好运")
+                    break
+                else:
+                    order_ticket_message="查到票了，预定成功，开始选乘坐人"
+                    print('查到票了，预定成功，开始选乘坐人')
+                    break
+        else:
+            print('正在查询你所需要的车次',end='\r')
+    return order_ticket_message
+
+finally_message=order_ticket()
+
+if finally_message=="本次抢票已结束，祝您好运" :
+    print("即将关闭浏览器打开的所有窗口")
+    driver.quit()
+    sleep(1)
+    print('浏览器已关闭')
+else:
+    sleep(2)
+    driver.find_element(By.XPATH,'//*[@id="normalPassenger_0"]').click()
+    print('乘车人选择成功，默认选择12306上面乘车人第一位')
+    sleep(0.5)
+    driver.find_element(By.XPATH,'//*[@id="submitOrder_id"]').click()
